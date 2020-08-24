@@ -86,7 +86,8 @@ export default class Gantt {
             date_format: 'YYYY-MM-DD',
             popup_trigger: 'click',
             custom_popup_html: null,
-            language: 'en'
+            language: 'en',
+            highlight_today: true
         };
         this.options = Object.assign({}, default_options, options);
     }
@@ -298,7 +299,7 @@ export default class Gantt {
         this.make_grid_rows();
         this.make_grid_header();
         this.make_grid_ticks();
-        this.make_grid_highlights();
+        this.options.highlight_today && this.make_grid_highlights();
     }
 
     make_grid_background() {
@@ -391,7 +392,10 @@ export default class Gantt {
                 tick_class += ' thick';
             }
             // thick ticks for quarters
-            if (this.view_is(VIEW_MODE.MONTH) && (date.getMonth() + 1) % 3 === 0) {
+            if (
+                this.view_is(VIEW_MODE.MONTH) &&
+                (date.getMonth() + 1) % 3 === 0
+            ) {
                 tick_class += ' thick';
             }
 
@@ -414,14 +418,23 @@ export default class Gantt {
 
     make_grid_highlights() {
         // highlight today's date
-        if (this.view_is(VIEW_MODE.DAY)) {
+        if (this.view_is(VIEW_MODE.DAY) || this.view_is(VIEW_MODE.MONTH)) {
+            const today = date_utils.today();
+            if (this.view_is(VIEW_MODE.MONTH)) {
+                today.setDate(today.getDate() - 1);
+            }
+
             const x =
-                date_utils.diff(date_utils.today(), this.gantt_start, 'hour') /
+                date_utils.diff(today, this.gantt_start, 'hour') /
                 this.options.step *
                 this.options.column_width;
             const y = 0;
 
-            const width = this.options.column_width;
+            let width = this.options.column_width;
+            if (this.view_is(VIEW_MODE.MONTH)) {
+                width /= date_utils.get_days_in_month(date_utils.today());
+            }
+
             const height =
                 (this.options.bar_height + this.options.padding) *
                     this.tasks.length +
